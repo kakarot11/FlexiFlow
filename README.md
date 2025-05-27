@@ -1,2 +1,2 @@
 # FlexiFlow
-AI Automation workflow
+CRM for workflow automation using agents.
