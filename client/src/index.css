@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --primary: 217 91% 53%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 215 25% 47%;
+  --secondary-foreground: 210 40% 98%;
+  --accent: 158 64% 39%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 215 20.2% 65.1%;
+  --radius: 0.5rem;
+  --chart-1: 217 91% 53%;
+  --chart-2: 158 64% 39%;
+  --chart-3: 262 83% 58%;
+  --chart-4: 43 96% 56%;
+  --chart-5: 0 84% 60%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 217 91% 53%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 215 25% 47%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 215 20.2% 65.1%;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+  --muted: 223 47% 11%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 215 20.2% 65.1%;
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+  --border: 216 34% 17%;
+  --input: 216 34% 17%;
+  --primary: 217 91% 53%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 215 25% 47%;
+  --secondary-foreground: 210 40% 98%;
+  --accent: 158 64% 39%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 216 34% 17%;
+  --radius: 0.5rem;
+  --chart-1: 217 91% 53%;
+  --chart-2: 158 64% 39%;
+  --chart-3: 262 83% 58%;
+  --chart-4: 43 96% 56%;
+  --chart-5: 0 84% 60%;
+  --sidebar-background: 224 71% 4%;
+  --sidebar-foreground: 213 31% 91%;
+  --sidebar-primary: 217 91% 53%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 215 25% 47%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 216 34% 17%;
+  --sidebar-ring: 216 34% 17%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+.sidebar-item {
+  @apply flex items-center px-2 py-2 text-sm font-medium text-foreground rounded-md transition-colors;
+}
+
+.sidebar-item:hover {
+  @apply bg-muted;
+}
+
+.sidebar-item.active {
+  @apply bg-primary/10 text-primary border-l-2 border-primary;
+}
+
+.sidebar-icon {
+  @apply mr-3 text-xl;
+}
+
+.tab-button {
+  @apply px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors;
+}
+
+.tab-active {
+  @apply text-primary border-b-2 border-primary;
+}
+
+.status-badge {
+  @apply px-2 inline-flex text-xs leading-5 font-semibold rounded-full;
+}
+
+.status-badge-pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-badge-in-progress {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-badge-completed {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge-overdue {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-badge-scheduled {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.status-badge-active {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge-inactive {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.status-badge-needs-config {
+  @apply bg-red-100 text-red-800;
+}
+
+@layer utilities {
+  .font-display {
+    font-display: swap;
+    /* or other desired values */
+  }
+}
