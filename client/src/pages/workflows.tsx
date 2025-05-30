@@ -1,48 +1,62 @@
 import { useState } from "react";
-import { 
-  GitBranch, 
-  PlusCircle, 
-  Search, 
-  Filter, 
+import {
+  GitBranch,
+  PlusCircle,
+  Search,
+  Filter,
   SortAsc,
   MoreHorizontal,
   PlayCircle,
   PauseCircle,
   Pencil,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Workflows() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDomain, setFilterDomain] = useState("all");
-  
+
   // Fetch workflows
   const { data: workflows, isLoading } = useQuery({
-    queryKey: ['/api/workflows'],
+    queryKey: ["/api/workflows"],
     staleTime: 30000, // 30 seconds
   });
-  
+
   // Filter workflows based on search and domain filter
-  const filteredWorkflows = workflows ? workflows.filter((workflow: any) => {
-    const matchesSearch = workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          workflow.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDomain = filterDomain === "all" || workflow.domain === filterDomain;
-    return matchesSearch && matchesDomain;
-  }) : [];
-  
+  const filteredWorkflows = workflows
+    ? workflows.filter((workflow: any) => {
+        const matchesSearch =
+          workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          workflow.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        const matchesDomain =
+          filterDomain === "all" || workflow.domain === filterDomain;
+        return matchesSearch && matchesDomain;
+      })
+    : [];
+
   return (
     <div className="py-6">
       {/* Page Header */}
@@ -67,19 +81,31 @@ export default function Workflows() {
                   <Label htmlFor="name" className="text-right">
                     Name
                   </Label>
-                  <Input id="name" placeholder="Workflow name" className="col-span-3" />
+                  <Input
+                    id="name"
+                    placeholder="Workflow name"
+                    className="col-span-3"
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="domain" className="text-right">
                     Domain
                   </Label>
-                  <Input id="domain" defaultValue="real-estate" className="col-span-3" />
+                  <Input
+                    id="domain"
+                    defaultValue="real-estate"
+                    className="col-span-3"
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="description" className="text-right">
                     Description
                   </Label>
-                  <Input id="description" placeholder="Workflow description" className="col-span-3" />
+                  <Input
+                    id="description"
+                    placeholder="Workflow description"
+                    className="col-span-3"
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -89,9 +115,11 @@ export default function Workflows() {
             </DialogContent>
           </Dialog>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your automated workflows and processes</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage your automated workflows and processes
+        </p>
       </div>
-      
+
       {/* Workflows Content */}
       <div className="px-4 sm:px-6 md:px-8">
         {/* Search and Filters */}
@@ -127,7 +155,7 @@ export default function Workflows() {
             </select>
           </div>
         </div>
-        
+
         {/* Workflows Grid */}
         {isLoading ? (
           <div className="py-20 text-center">
@@ -146,8 +174,12 @@ export default function Workflows() {
                           <GitBranch className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-foreground">{workflow.name}</h3>
-                          <p className="text-sm text-muted-foreground">{workflow.description}</p>
+                          <h3 className="font-medium text-foreground">
+                            {workflow.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {workflow.description}
+                          </p>
                         </div>
                       </div>
                       <DropdownMenu>
@@ -161,7 +193,8 @@ export default function Workflows() {
                             <PlayCircle className="mr-2 h-4 w-4" /> Run Workflow
                           </DropdownMenuItem>
                           <DropdownMenuItem>
-                            <PauseCircle className="mr-2 h-4 w-4" /> Pause Workflow
+                            <PauseCircle className="mr-2 h-4 w-4" /> Pause
+                            Workflow
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Pencil className="mr-2 h-4 w-4" /> Edit Workflow
@@ -175,10 +208,16 @@ export default function Workflows() {
                   </div>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <Badge variant={workflow.status === "active" ? "success" : "outline"}>
+                      <Badge
+                        variant={
+                          workflow.status === "active" ? "success" : "outline"
+                        }
+                      >
                         {workflow.status === "active" ? "Active" : "Inactive"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">Domain: {workflow.domain}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Domain: {workflow.domain}
+                      </span>
                     </div>
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
@@ -190,12 +229,16 @@ export default function Workflows() {
                         <span className="font-medium">0</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Performance:</span>
+                        <span className="text-muted-foreground">
+                          Performance:
+                        </span>
                         <span className="font-medium text-green-600">90%</span>
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-border">
-                      <Button variant="outline" size="sm" className="w-full">View Details</Button>
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Details
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -203,8 +246,12 @@ export default function Workflows() {
             ) : (
               <div className="col-span-1 md:col-span-2 lg:col-span-3 py-16 text-center">
                 <GitBranch className="h-12 w-12 mx-auto text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium text-foreground">No workflows found</h3>
-                <p className="mt-1 text-muted-foreground">Create a new workflow to get started</p>
+                <h3 className="mt-4 text-lg font-medium text-foreground">
+                  No workflows found
+                </h3>
+                <p className="mt-1 text-muted-foreground">
+                  Create a new workflow to get started
+                </p>
                 <Button className="mt-4">
                   <PlusCircle className="mr-2 h-4 w-4" /> Create Workflow
                 </Button>
