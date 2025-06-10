@@ -32,7 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Select,
   SelectContent,
@@ -45,7 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function AiAgents() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,7 +64,7 @@ export default function AiAgents() {
       maxTokens: 1000,
       systemPrompt: "",
       autoRun: false,
-      triggerEvents: []
+      triggerEvents: [] as string[]
     }
   });
   
@@ -103,7 +103,7 @@ export default function AiAgents() {
   // Update agent mutation
   const updateAgentMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/agents/${id}`, "PATCH", data);
+      return await apiRequest("PATCH", `/api/agents/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
@@ -126,7 +126,7 @@ export default function AiAgents() {
   // Delete agent mutation
   const deleteAgentMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/agents/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/agents/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
@@ -257,7 +257,7 @@ export default function AiAgents() {
       <div className="px-4 sm:px-6 md:px-8 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-foreground">AI Agents</h1>
-          <Dialog>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> New Agent
@@ -270,59 +270,96 @@ export default function AiAgents() {
                   Configure a new AI agent to automate tasks in your workflow.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="agent-name" className="text-right">
-                    Name
-                  </Label>
-                  <Input id="agent-name" placeholder="Agent name" className="col-span-3" />
+              <form onSubmit={handleCreateAgent}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="agent-name" className="text-right">
+                      Name
+                    </Label>
+                    <Input 
+                      id="agent-name" 
+                      placeholder="Agent name" 
+                      className="col-span-3"
+                      value={agentForm.name}
+                      onChange={(e) => setAgentForm(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="agent-type" className="text-right">
+                      Type
+                    </Label>
+                    <Select 
+                      value={agentForm.agentType}
+                      onValueChange={(value) => setAgentForm(prev => ({ ...prev, agentType: value }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select agent type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="matching">Matching</SelectItem>
+                        <SelectItem value="communication">Communication</SelectItem>
+                        <SelectItem value="document">Document Processing</SelectItem>
+                        <SelectItem value="analysis">Analysis</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="agent-description" className="text-right">
+                      Description
+                    </Label>
+                    <Textarea 
+                      id="agent-description" 
+                      placeholder="What does this agent do?" 
+                      className="col-span-3" 
+                      rows={3}
+                      value={agentForm.description}
+                      onChange={(e) => setAgentForm(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="agent-model" className="text-right">
+                      AI Model
+                    </Label>
+                    <Select 
+                      value={agentForm.config.model}
+                      onValueChange={(value) => setAgentForm(prev => ({ 
+                        ...prev, 
+                        config: { ...prev.config, model: value }
+                      }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select AI model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="agent-type" className="text-right">
-                    Type
-                  </Label>
-                  <Select>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select agent type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="matching">Matching</SelectItem>
-                      <SelectItem value="communication">Communication</SelectItem>
-                      <SelectItem value="document">Document Processing</SelectItem>
-                      <SelectItem value="analysis">Analysis</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="agent-description" className="text-right">
-                    Description
-                  </Label>
-                  <Textarea 
-                    id="agent-description" 
-                    placeholder="What does this agent do?" 
-                    className="col-span-3" 
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="agent-model" className="text-right">
-                    AI Model
-                  </Label>
-                  <Select>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select AI model" defaultValue="gpt-4o" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline">Cancel</Button>
-                <Button>Create Agent</Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setCreateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createAgentMutation.isPending}
+                  >
+                    {createAgentMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Agent'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -398,16 +435,19 @@ export default function AiAgents() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => handleConfigureAgent(agent)}>
+                              <Cog className="mr-2 h-4 w-4" /> Configure
+                            </DropdownMenuItem>
                             <DropdownMenuItem>
                               <PlayCircle className="mr-2 h-4 w-4" /> Run Agent
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleConfigureAgent(agent)}>
                               <Pencil className="mr-2 h-4 w-4" /> Edit Agent
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Cog className="mr-2 h-4 w-4" /> Configure
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteAgent(agent.id)}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" /> Delete Agent
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -434,7 +474,12 @@ export default function AiAgents() {
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-border flex space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleConfigureAgent(agent)}
+                        >
                           <Settings className="mr-2 h-4 w-4" /> Configure
                         </Button>
                         <Button size="sm" className="flex-1">
@@ -450,13 +495,239 @@ export default function AiAgents() {
                 <Bot className="h-12 w-12 mx-auto text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-medium text-foreground">No AI agents found</h3>
                 <p className="mt-1 text-muted-foreground">Create a new AI agent to start automating tasks</p>
-                <Button className="mt-4">
+                <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Create Agent
                 </Button>
               </div>
             )}
           </div>
         )}
+
+        {/* Configuration Dialog */}
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Configure AI Agent</DialogTitle>
+              <DialogDescription>
+                Advanced settings for {selectedAgent?.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="ai-config">AI Settings</TabsTrigger>
+                <TabsTrigger value="automation">Automation</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="general" className="space-y-4">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-name" className="text-right">Name</Label>
+                    <Input 
+                      id="config-name"
+                      className="col-span-3"
+                      value={agentForm.name}
+                      onChange={(e) => setAgentForm(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-description" className="text-right">Description</Label>
+                    <Textarea 
+                      id="config-description"
+                      className="col-span-3"
+                      rows={3}
+                      value={agentForm.description}
+                      onChange={(e) => setAgentForm(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-type" className="text-right">Type</Label>
+                    <Select 
+                      value={agentForm.agentType}
+                      onValueChange={(value) => setAgentForm(prev => ({ ...prev, agentType: value }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="matching">Matching</SelectItem>
+                        <SelectItem value="communication">Communication</SelectItem>
+                        <SelectItem value="document">Document Processing</SelectItem>
+                        <SelectItem value="analysis">Analysis</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-status" className="text-right">Status</Label>
+                    <Select 
+                      value={agentForm.status}
+                      onValueChange={(value) => setAgentForm(prev => ({ ...prev, status: value }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="needs-config">Needs Configuration</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="ai-config" className="space-y-4">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-model" className="text-right">AI Model</Label>
+                    <Select 
+                      value={agentForm.config.model}
+                      onValueChange={(value) => setAgentForm(prev => ({ 
+                        ...prev, 
+                        config: { ...prev.config, model: value }
+                      }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-temperature" className="text-right">
+                      Temperature ({agentForm.config.temperature})
+                    </Label>
+                    <div className="col-span-3">
+                      <Slider
+                        value={[agentForm.config.temperature]}
+                        onValueChange={([value]) => setAgentForm(prev => ({ 
+                          ...prev, 
+                          config: { ...prev.config, temperature: value }
+                        }))}
+                        max={1}
+                        min={0}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Creative</span>
+                        <span>Focused</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="config-max-tokens" className="text-right">Max Tokens</Label>
+                    <Input 
+                      id="config-max-tokens"
+                      type="number"
+                      className="col-span-3"
+                      value={agentForm.config.maxTokens}
+                      onChange={(e) => setAgentForm(prev => ({ 
+                        ...prev, 
+                        config: { ...prev.config, maxTokens: parseInt(e.target.value) || 1000 }
+                      }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="config-system-prompt" className="text-right pt-2">
+                      System Prompt
+                    </Label>
+                    <Textarea 
+                      id="config-system-prompt"
+                      className="col-span-3"
+                      rows={5}
+                      placeholder="Define the agent's role, behavior, and instructions..."
+                      value={agentForm.config.systemPrompt}
+                      onChange={(e) => setAgentForm(prev => ({ 
+                        ...prev, 
+                        config: { ...prev.config, systemPrompt: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="automation" className="space-y-4">
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Auto-run Agent</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically execute this agent when triggered
+                      </p>
+                    </div>
+                    <Switch
+                      checked={agentForm.config.autoRun}
+                      onCheckedChange={(checked) => setAgentForm(prev => ({ 
+                        ...prev, 
+                        config: { ...prev.config, autoRun: checked }
+                      }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Trigger Events</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        'workflow_started',
+                        'task_created',
+                        'contact_added',
+                        'email_received'
+                      ].map((event) => (
+                        <div key={event} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={event}
+                            checked={agentForm.config.triggerEvents.includes(event)}
+                            onChange={(e) => {
+                              const events = agentForm.config.triggerEvents;
+                              const newEvents = e.target.checked 
+                                ? [...events, event]
+                                : events.filter(e => e !== event);
+                              setAgentForm(prev => ({ 
+                                ...prev, 
+                                config: { ...prev.config, triggerEvents: newEvents }
+                              }));
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor={event} className="text-sm font-normal">
+                            {event.replace('_', ' ').toUpperCase()}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setConfigDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveConfiguration}
+                disabled={updateAgentMutation.isPending}
+              >
+                {updateAgentMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Configuration'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
