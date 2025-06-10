@@ -127,11 +127,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={item.path} 
                 href={item.path} 
                 onClick={handleNavigation}
+                className={`sidebar-item ${location === item.path ? 'active' : ''}`}
               >
-                <a className={`sidebar-item ${location === item.path ? 'active' : ''}`}>
-                  {item.icon}
-                  {item.label}
-                </a>
+                {item.icon}
+                {item.label}
               </Link>
             ))}
           </nav>
@@ -143,11 +142,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={item.path} 
                 href={item.path} 
                 onClick={handleNavigation}
+                className={`sidebar-item ${location === item.path ? 'active' : ''}`}
               >
-                <a className={`sidebar-item ${location === item.path ? 'active' : ''}`}>
-                  {item.icon}
-                  {item.label}
-                </a>
+                {item.icon}
+                {item.label}
               </Link>
             ))}
             

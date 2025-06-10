@@ -10,6 +10,8 @@ import {
   PauseCircle,
   Pencil,
   Trash2,
+  Wand2,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,17 +33,131 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Workflows() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDomain, setFilterDomain] = useState("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [workflowForm, setWorkflowForm] = useState({
+    name: "",
+    domain: "real-estate",
+    description: ""
+  });
+  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch workflows
   const { data: workflows, isLoading } = useQuery({
     queryKey: ["/api/workflows"],
     staleTime: 30000, // 30 seconds
   });
+
+  // Create workflow mutation
+  const createWorkflowMutation = useMutation({
+    mutationFn: async (workflowData: any) => {
+      return apiRequest("/api/workflows", {
+        method: "POST",
+        body: JSON.stringify(workflowData)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workflows"] });
+      setCreateDialogOpen(false);
+      setWorkflowForm({ name: "", domain: "real-estate", description: "" });
+      setAiSuggestion(null);
+      toast({
+        title: "Workflow created",
+        description: "Your workflow has been created successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create workflow",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // AI suggestion mutation
+  const aiSuggestionMutation = useMutation({
+    mutationFn: async (data: { domain: string; description: string }) => {
+      return apiRequest("/api/ai/suggest-workflow", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: (data) => {
+      setAiSuggestion(data.workflow);
+      toast({
+        title: "AI Suggestion Generated",
+        description: "Review the suggested workflow structure below."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate AI suggestion",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle form submission
+  const handleCreateWorkflow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workflowForm.name.trim() || !workflowForm.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    await createWorkflowMutation.mutateAsync(workflowForm);
+  };
+
+  // Handle AI suggestion
+  const handleAiSuggestion = async () => {
+    if (!workflowForm.description.trim()) {
+      toast({
+        title: "Description Required",
+        description: "Please provide a workflow description for AI suggestions",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await aiSuggestionMutation.mutateAsync({
+      domain: workflowForm.domain,
+      description: workflowForm.description
+    });
+  };
+
+  // Apply AI suggestion
+  const applyAiSuggestion = () => {
+    if (aiSuggestion) {
+      setWorkflowForm(prev => ({
+        ...prev,
+        name: aiSuggestion.name,
+        description: aiSuggestion.description
+      }));
+    }
+  };
 
   // Filter workflows based on search and domain filter
   const filteredWorkflows = workflows
