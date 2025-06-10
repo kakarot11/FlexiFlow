@@ -514,8 +514,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create demo data
   const createDemoData = async () => {
     try {
-      const user = await storage.getUserByUsername("demo");
-      if (!user) return;
+      // Create demo user if it doesn't exist
+      let user = await storage.getUserByUsername("demo");
+      if (!user) {
+        user = await storage.createUser({
+          username: "demo",
+          password: "demo123",
+          email: "demo@example.com",
+          fullName: "Demo User",
+          role: "admin"
+        });
+      }
 
       // Pre-populate with workflows
       const existingWorkflows = await storage.getWorkflowsByUserId(user.id);

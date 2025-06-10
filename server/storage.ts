@@ -2,8 +2,11 @@ import {
   User, InsertUser, Contact, InsertContact,
   Workflow, InsertWorkflow, WorkflowStep, InsertWorkflowStep,
   AiAgent, InsertAiAgent, Task, InsertTask,
-  Activity, InsertActivity, DomainTemplate, InsertDomainTemplate
+  Activity, InsertActivity, DomainTemplate, InsertDomainTemplate,
+  users, contacts, workflows, workflowSteps, aiAgents, tasks, activities, domainTemplates
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -446,4 +449,241 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // Contact operations
+  async getContact(id: number): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
+  async getContactsByUserId(userId: number): Promise<Contact[]> {
+    return await db.select().from(contacts).where(eq(contacts.userId, userId));
+  }
+
+  async createContact(insertContact: InsertContact): Promise<Contact> {
+    const [contact] = await db
+      .insert(contacts)
+      .values(insertContact)
+      .returning();
+    return contact;
+  }
+
+  async updateContact(id: number, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
+    const [contact] = await db
+      .update(contacts)
+      .set(contactData)
+      .where(eq(contacts.id, id))
+      .returning();
+    return contact || undefined;
+  }
+
+  async deleteContact(id: number): Promise<boolean> {
+    const result = await db.delete(contacts).where(eq(contacts.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Workflow operations
+  async getWorkflow(id: number): Promise<Workflow | undefined> {
+    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, id));
+    return workflow || undefined;
+  }
+
+  async getWorkflowsByUserId(userId: number): Promise<Workflow[]> {
+    return await db.select().from(workflows).where(eq(workflows.userId, userId));
+  }
+
+  async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
+    const [workflow] = await db
+      .insert(workflows)
+      .values(insertWorkflow)
+      .returning();
+    return workflow;
+  }
+
+  async updateWorkflow(id: number, workflowData: Partial<InsertWorkflow>): Promise<Workflow | undefined> {
+    const [workflow] = await db
+      .update(workflows)
+      .set(workflowData)
+      .where(eq(workflows.id, id))
+      .returning();
+    return workflow || undefined;
+  }
+
+  async deleteWorkflow(id: number): Promise<boolean> {
+    const result = await db.delete(workflows).where(eq(workflows.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Workflow step operations
+  async getWorkflowStep(id: number): Promise<WorkflowStep | undefined> {
+    const [step] = await db.select().from(workflowSteps).where(eq(workflowSteps.id, id));
+    return step || undefined;
+  }
+
+  async getWorkflowStepsByWorkflowId(workflowId: number): Promise<WorkflowStep[]> {
+    return await db.select().from(workflowSteps).where(eq(workflowSteps.workflowId, workflowId));
+  }
+
+  async createWorkflowStep(insertWorkflowStep: InsertWorkflowStep): Promise<WorkflowStep> {
+    const [step] = await db
+      .insert(workflowSteps)
+      .values(insertWorkflowStep)
+      .returning();
+    return step;
+  }
+
+  async updateWorkflowStep(id: number, workflowStepData: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined> {
+    const [step] = await db
+      .update(workflowSteps)
+      .set(workflowStepData)
+      .where(eq(workflowSteps.id, id))
+      .returning();
+    return step || undefined;
+  }
+
+  async deleteWorkflowStep(id: number): Promise<boolean> {
+    const result = await db.delete(workflowSteps).where(eq(workflowSteps.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // AI Agent operations
+  async getAiAgent(id: number): Promise<AiAgent | undefined> {
+    const [agent] = await db.select().from(aiAgents).where(eq(aiAgents.id, id));
+    return agent || undefined;
+  }
+
+  async getAiAgentsByUserId(userId: number): Promise<AiAgent[]> {
+    return await db.select().from(aiAgents).where(eq(aiAgents.userId, userId));
+  }
+
+  async createAiAgent(insertAiAgent: InsertAiAgent): Promise<AiAgent> {
+    const [agent] = await db
+      .insert(aiAgents)
+      .values(insertAiAgent)
+      .returning();
+    return agent;
+  }
+
+  async updateAiAgent(id: number, aiAgentData: Partial<InsertAiAgent>): Promise<AiAgent | undefined> {
+    const [agent] = await db
+      .update(aiAgents)
+      .set(aiAgentData)
+      .where(eq(aiAgents.id, id))
+      .returning();
+    return agent || undefined;
+  }
+
+  async deleteAiAgent(id: number): Promise<boolean> {
+    const result = await db.delete(aiAgents).where(eq(aiAgents.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Task operations
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task || undefined;
+  }
+
+  async getTasksByUserId(userId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.userId, userId));
+  }
+
+  async getTasksByWorkflowId(workflowId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.workflowId, workflowId));
+  }
+
+  async getTasksByContactId(contactId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.contactId, contactId));
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db
+      .insert(tasks)
+      .values(insertTask)
+      .returning();
+    return task;
+  }
+
+  async updateTask(id: number, taskData: Partial<InsertTask>): Promise<Task | undefined> {
+    const [task] = await db
+      .update(tasks)
+      .set(taskData)
+      .where(eq(tasks.id, id))
+      .returning();
+    return task || undefined;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const result = await db.delete(tasks).where(eq(tasks.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Activity operations
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity || undefined;
+  }
+
+  async getActivitiesByUserId(userId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.userId, userId));
+  }
+
+  async getActivitiesByWorkflowId(workflowId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.workflowId, workflowId));
+  }
+
+  async getActivitiesByContactId(contactId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.contactId, contactId));
+  }
+
+  async getActivitiesByTaskId(taskId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.taskId, taskId));
+  }
+
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const [activity] = await db
+      .insert(activities)
+      .values(insertActivity)
+      .returning();
+    return activity;
+  }
+
+  // Domain Template operations
+  async getDomainTemplate(id: number): Promise<DomainTemplate | undefined> {
+    const [template] = await db.select().from(domainTemplates).where(eq(domainTemplates.id, id));
+    return template || undefined;
+  }
+
+  async getDomainTemplatesByDomain(domain: string): Promise<DomainTemplate[]> {
+    return await db.select().from(domainTemplates).where(eq(domainTemplates.domain, domain));
+  }
+
+  async createDomainTemplate(insertDomainTemplate: InsertDomainTemplate): Promise<DomainTemplate> {
+    const [template] = await db
+      .insert(domainTemplates)
+      .values(insertDomainTemplate)
+      .returning();
+    return template;
+  }
+}
+
+export const storage = new DatabaseStorage();
