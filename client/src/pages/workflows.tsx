@@ -68,10 +68,17 @@ export default function Workflows() {
   // Create workflow mutation
   const createWorkflowMutation = useMutation({
     mutationFn: async (workflowData: any) => {
-      return apiRequest("/api/workflows", {
+      const response = await fetch("/api/workflows", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(workflowData)
       });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/workflows"] });
@@ -95,10 +102,17 @@ export default function Workflows() {
   // AI suggestion mutation
   const aiSuggestionMutation = useMutation({
     mutationFn: async (data: { domain: string; description: string }) => {
-      return apiRequest("/api/ai/suggest-workflow", {
+      const response = await fetch("/api/ai/suggest-workflow", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data)
       });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: (data) => {
       setAiSuggestion(data.workflow);
@@ -160,7 +174,7 @@ export default function Workflows() {
   };
 
   // Filter workflows based on search and domain filter
-  const filteredWorkflows = workflows
+  const filteredWorkflows = workflows && Array.isArray(workflows)
     ? workflows.filter((workflow: any) => {
         const matchesSearch =
           workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -179,55 +193,129 @@ export default function Workflows() {
       <div className="px-4 sm:px-6 md:px-8 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-foreground">Workflows</h1>
-          <Dialog>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> New Workflow
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Workflow</DialogTitle>
-                <DialogDescription>
-                  Create a new workflow to automate your business processes.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Workflow name"
-                    className="col-span-3"
-                  />
+            <DialogContent className="sm:max-w-[600px]">
+              <form onSubmit={handleCreateWorkflow}>
+                <DialogHeader>
+                  <DialogTitle>Create New Workflow</DialogTitle>
+                  <DialogDescription>
+                    Create a new workflow to automate your business processes. Use AI to generate suggestions.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="workflow-name" className="text-right">
+                      Name
+                    </Label>
+                    <Input 
+                      id="workflow-name" 
+                      placeholder="Workflow name" 
+                      className="col-span-3"
+                      value={workflowForm.name}
+                      onChange={(e) => setWorkflowForm(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="workflow-domain" className="text-right">
+                      Domain
+                    </Label>
+                    <Select 
+                      value={workflowForm.domain} 
+                      onValueChange={(value) => setWorkflowForm(prev => ({ ...prev, domain: value }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="real-estate">Real Estate</SelectItem>
+                        <SelectItem value="sales">Sales</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="healthcare">Healthcare</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="workflow-description" className="text-right">
+                      Description
+                    </Label>
+                    <div className="col-span-3 space-y-2">
+                      <Textarea 
+                        id="workflow-description" 
+                        placeholder="Describe what this workflow should accomplish..." 
+                        rows={3}
+                        value={workflowForm.description}
+                        onChange={(e) => setWorkflowForm(prev => ({ ...prev, description: e.target.value }))}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAiSuggestion}
+                        disabled={aiSuggestionMutation.isPending || !workflowForm.description.trim()}
+                        className="w-full"
+                      >
+                        {aiSuggestionMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Wand2 className="mr-2 h-4 w-4" />
+                        )}
+                        Generate AI Suggestion
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {aiSuggestion && (
+                    <div className="col-span-4 p-4 border rounded-lg bg-muted/50">
+                      <h4 className="font-medium mb-2">AI Suggestion:</h4>
+                      <div className="space-y-2 text-sm">
+                        <div><strong>Name:</strong> {aiSuggestion.name}</div>
+                        <div><strong>Description:</strong> {aiSuggestion.description}</div>
+                        <div><strong>Steps:</strong></div>
+                        <ul className="list-disc list-inside ml-4">
+                          {aiSuggestion.steps?.map((step: any, index: number) => (
+                            <li key={index}>{step.name} - {step.description}</li>
+                          ))}
+                        </ul>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={applyAiSuggestion}
+                          className="mt-2"
+                        >
+                          Apply Suggestion
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="domain" className="text-right">
-                    Domain
-                  </Label>
-                  <Input
-                    id="domain"
-                    defaultValue="real-estate"
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Description
-                  </Label>
-                  <Input
-                    id="description"
-                    placeholder="Workflow description"
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline">Cancel</Button>
-                <Button>Create Workflow</Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setCreateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createWorkflowMutation.isPending}
+                  >
+                    {createWorkflowMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Create Workflow
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
