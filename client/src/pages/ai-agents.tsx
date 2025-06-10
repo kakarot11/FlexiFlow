@@ -13,11 +13,16 @@ import {
   Loader2,
   Brain,
   MessageSquare,
-  Zap
+  Zap,
+  Sliders,
+  Activity,
+  CheckCircle,
+  AlertCircle,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -37,11 +42,17 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AiAgents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [agentForm, setAgentForm] = useState({
     name: "",
     description: "",
@@ -50,7 +61,10 @@ export default function AiAgents() {
     config: {
       model: "gpt-4o",
       temperature: 0.7,
-      maxTokens: 1000
+      maxTokens: 1000,
+      systemPrompt: "",
+      autoRun: false,
+      triggerEvents: []
     }
   });
   
@@ -66,22 +80,12 @@ export default function AiAgents() {
   // Create agent mutation
   const createAgentMutation = useMutation({
     mutationFn: async (agentData: any) => {
-      const response = await fetch("/api/agents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(agentData)
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
+      return await apiRequest("POST", "/api/agents", agentData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       setCreateDialogOpen(false);
-      setAgentForm({ name: "", description: "", agentType: "communication", status: "active", config: { model: "gpt-4o", temperature: 0.7, maxTokens: 1000 } });
+      resetForm();
       toast({
         title: "AI Agent created",
         description: "Your AI agent has been created successfully."
@@ -96,6 +100,68 @@ export default function AiAgents() {
     }
   });
 
+  // Update agent mutation
+  const updateAgentMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return await apiRequest(`/api/agents/${id}`, "PATCH", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      setConfigDialogOpen(false);
+      setSelectedAgent(null);
+      toast({
+        title: "Agent updated",
+        description: "AI agent configuration has been saved."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update agent",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete agent mutation
+  const deleteAgentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/agents/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      toast({
+        title: "Agent deleted",
+        description: "AI agent has been removed successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete agent",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Reset form function
+  const resetForm = () => {
+    setAgentForm({
+      name: "",
+      description: "",
+      agentType: "communication",
+      status: "active",
+      config: {
+        model: "gpt-4o",
+        temperature: 0.7,
+        maxTokens: 1000,
+        systemPrompt: "",
+        autoRun: false,
+        triggerEvents: []
+      }
+    });
+  };
+
   // Handle form submission
   const handleCreateAgent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +175,43 @@ export default function AiAgents() {
     }
     
     await createAgentMutation.mutateAsync(agentForm);
+  };
+
+  // Handle configure agent
+  const handleConfigureAgent = (agent: any) => {
+    setSelectedAgent(agent);
+    setAgentForm({
+      name: agent.name,
+      description: agent.description,
+      agentType: agent.agentType,
+      status: agent.status,
+      config: {
+        model: agent.config?.model || "gpt-4o",
+        temperature: agent.config?.temperature || 0.7,
+        maxTokens: agent.config?.maxTokens || 1000,
+        systemPrompt: agent.config?.systemPrompt || "",
+        autoRun: agent.config?.autoRun || false,
+        triggerEvents: agent.config?.triggerEvents || []
+      }
+    });
+    setConfigDialogOpen(true);
+  };
+
+  // Handle save configuration
+  const handleSaveConfiguration = async () => {
+    if (!selectedAgent) return;
+    
+    await updateAgentMutation.mutateAsync({
+      id: selectedAgent.id,
+      data: agentForm
+    });
+  };
+
+  // Handle delete agent
+  const handleDeleteAgent = async (agentId: number) => {
+    if (confirm("Are you sure you want to delete this AI agent? This action cannot be undone.")) {
+      await deleteAgentMutation.mutateAsync(agentId);
+    }
   };
   
   // Filter agents based on search and type filter

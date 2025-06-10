@@ -529,6 +529,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteWorkflow(id: number): Promise<boolean> {
+    // Delete related activities first to avoid foreign key constraint violations
+    await db.delete(activities).where(eq(activities.workflowId, id));
+    
+    // Delete related workflow steps
+    await db.delete(workflowSteps).where(eq(workflowSteps.workflowId, id));
+    
+    // Delete related tasks
+    await db.update(tasks).set({ workflowId: null }).where(eq(tasks.workflowId, id));
+    
+    // Finally delete the workflow
     const result = await db.delete(workflows).where(eq(workflows.id, id));
     return (result.rowCount || 0) > 0;
   }
