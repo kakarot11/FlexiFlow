@@ -69,7 +69,6 @@ export default function AiAgents() {
   });
   
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   // Fetch AI agents
   const { data: agents, isLoading } = useQuery({
@@ -686,7 +685,7 @@ export default function AiAgents() {
                               const events = agentForm.config.triggerEvents;
                               const newEvents = e.target.checked 
                                 ? [...events, event]
-                                : events.filter(e => e !== event);
+                                : events.filter(ev => ev !== event);
                               setAgentForm(prev => ({ 
                                 ...prev, 
                                 config: { ...prev.config, triggerEvents: newEvents }
