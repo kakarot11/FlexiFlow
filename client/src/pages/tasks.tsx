@@ -12,7 +12,10 @@ import {
   MoreHorizontal,
   Circle,
   User,
-  GitBranch
+  GitBranch,
+  Loader2,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   Select,
@@ -37,29 +40,128 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [viewType, setViewType] = useState("list");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    description: "",
+    priority: "medium",
+    status: "pending",
+    dueDate: "",
+    workflowId: "",
+    contactId: ""
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch tasks
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['/api/tasks'],
     staleTime: 30000, // 30 seconds
   });
-  
+
   // Fetch workflows for task assignment
   const { data: workflows } = useQuery({
     queryKey: ['/api/workflows'],
-    staleTime: 60000, // 1 minute
+    staleTime: 30000,
   });
-  
+
   // Fetch contacts for task assignment
   const { data: contacts } = useQuery({
     queryKey: ['/api/contacts'],
-    staleTime: 60000, // 1 minute
+    staleTime: 30000,
   });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(taskData)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      setCreateDialogOpen(false);
+      setTaskForm({ title: "", description: "", priority: "medium", status: "pending", dueDate: "", workflowId: "", contactId: "" });
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create task",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update task status mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Task updated",
+        description: "Task status has been updated successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update task",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle form submission
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskForm.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a task title",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    await createTaskMutation.mutateAsync(taskForm);
+  };
+
+  // Handle task status toggle
+  const handleStatusToggle = async (taskId: number, currentStatus: string) => {
+    const newStatus = currentStatus === "completed" ? "pending" : "completed";
+    await updateTaskMutation.mutateAsync({ id: taskId, status: newStatus });
+  };
   
   // Filter tasks based on search and status filter
   const filteredTasks = tasks ? tasks.filter((task: any) => {
