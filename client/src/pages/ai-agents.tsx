@@ -9,7 +9,11 @@ import {
   PlayCircle,
   Trash2,
   Cog,
-  Pencil
+  Pencil,
+  Loader2,
+  Brain,
+  MessageSquare,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Select,
   SelectContent,
@@ -32,19 +36,83 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AiAgents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [agentForm, setAgentForm] = useState({
+    name: "",
+    description: "",
+    agentType: "communication",
+    status: "active",
+    config: {
+      model: "gpt-4o",
+      temperature: 0.7,
+      maxTokens: 1000
+    }
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch AI agents
   const { data: agents, isLoading } = useQuery({
     queryKey: ['/api/agents'],
     staleTime: 30000, // 30 seconds
   });
+
+  // Create agent mutation
+  const createAgentMutation = useMutation({
+    mutationFn: async (agentData: any) => {
+      const response = await fetch("/api/agents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(agentData)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      setCreateDialogOpen(false);
+      setAgentForm({ name: "", description: "", agentType: "communication", status: "active", config: { model: "gpt-4o", temperature: 0.7, maxTokens: 1000 } });
+      toast({
+        title: "AI Agent created",
+        description: "Your AI agent has been created successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create AI agent",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle form submission
+  const handleCreateAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agentForm.name.trim() || !agentForm.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    await createAgentMutation.mutateAsync(agentForm);
+  };
   
   // Filter agents based on search and type filter
-  const filteredAgents = agents ? agents.filter((agent: any) => {
+  const filteredAgents = agents && Array.isArray(agents) ? agents.filter((agent: any) => {
     const matchesSearch = agent.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           agent.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === "all" || agent.agentType === filterType;
