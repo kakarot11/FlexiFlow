@@ -49,6 +49,8 @@ export default function Workflows() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDomain, setFilterDomain] = useState("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingWorkflow, setEditingWorkflow] = useState<any>(null);
   const [workflowForm, setWorkflowForm] = useState({
     name: "",
     domain: "real-estate",
@@ -130,6 +132,67 @@ export default function Workflows() {
     }
   });
 
+  // Update workflow mutation
+  const updateWorkflowMutation = useMutation({
+    mutationFn: async ({ id, ...workflowData }: any) => {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(workflowData)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workflows"] });
+      setEditDialogOpen(false);
+      setEditingWorkflow(null);
+      setWorkflowForm({ name: "", domain: "real-estate", description: "" });
+      toast({
+        title: "Workflow updated",
+        description: "Your workflow has been updated successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update workflow",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete workflow mutation
+  const deleteWorkflowMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workflows"] });
+      toast({
+        title: "Workflow deleted",
+        description: "Your workflow has been deleted successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete workflow",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Handle form submission
   const handleCreateWorkflow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +206,42 @@ export default function Workflows() {
     }
     
     await createWorkflowMutation.mutateAsync(workflowForm);
+  };
+
+  // Handle edit workflow
+  const handleEditWorkflow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workflowForm.name.trim() || !workflowForm.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    await updateWorkflowMutation.mutateAsync({
+      id: editingWorkflow.id,
+      ...workflowForm
+    });
+  };
+
+  // Open edit dialog
+  const openEditDialog = (workflow: any) => {
+    setEditingWorkflow(workflow);
+    setWorkflowForm({
+      name: workflow.name,
+      domain: workflow.domain,
+      description: workflow.description
+    });
+    setEditDialogOpen(true);
+  };
+
+  // Handle delete workflow
+  const handleDeleteWorkflow = async (id: number) => {
+    if (confirm("Are you sure you want to delete this workflow?")) {
+      await deleteWorkflowMutation.mutateAsync(id);
+    }
   };
 
   // Handle AI suggestion
@@ -318,6 +417,87 @@ export default function Workflows() {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Workflow Dialog */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <form onSubmit={handleEditWorkflow}>
+                <DialogHeader>
+                  <DialogTitle>Edit Workflow</DialogTitle>
+                  <DialogDescription>
+                    Update your workflow details and configuration.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-workflow-name" className="text-right">
+                      Name
+                    </Label>
+                    <Input 
+                      id="edit-workflow-name" 
+                      placeholder="Workflow name" 
+                      className="col-span-3"
+                      value={workflowForm.name}
+                      onChange={(e) => setWorkflowForm(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-workflow-domain" className="text-right">
+                      Domain
+                    </Label>
+                    <Select 
+                      value={workflowForm.domain} 
+                      onValueChange={(value) => setWorkflowForm(prev => ({ ...prev, domain: value }))}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="real-estate">Real Estate</SelectItem>
+                        <SelectItem value="sales">Sales</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                        <SelectItem value="healthcare">Healthcare</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-workflow-description" className="text-right">
+                      Description
+                    </Label>
+                    <Textarea 
+                      id="edit-workflow-description" 
+                      placeholder="Describe what this workflow should accomplish..." 
+                      rows={3}
+                      className="col-span-3"
+                      value={workflowForm.description}
+                      onChange={(e) => setWorkflowForm(prev => ({ ...prev, description: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={updateWorkflowMutation.isPending}
+                  >
+                    {updateWorkflowMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Update Workflow
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Manage your automated workflows and processes
@@ -400,10 +580,13 @@ export default function Workflows() {
                             <PauseCircle className="mr-2 h-4 w-4" /> Pause
                             Workflow
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(workflow)}>
                             <Pencil className="mr-2 h-4 w-4" /> Edit Workflow
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeleteWorkflow(workflow.id)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete Workflow
                           </DropdownMenuItem>
                         </DropdownMenuContent>

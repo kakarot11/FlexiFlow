@@ -166,6 +166,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/workflows/:id", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername("demo");
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+      const workflowId = parseInt(req.params.id);
+      const workflow = await storage.getWorkflow(workflowId);
+
+      if (!workflow || workflow.userId !== user.id) {
+        return res.status(404).json({ error: "Workflow not found" });
+      }
+
+      const updateData = insertWorkflowSchema.partial().parse(req.body);
+      const updatedWorkflow = await storage.updateWorkflow(workflowId, updateData);
+
+      if (!updatedWorkflow) {
+        return res.status(404).json({ error: "Workflow not found" });
+      }
+
+      // Create activity for workflow update
+      await storage.createActivity({
+        userId: user.id,
+        workflowId: updatedWorkflow.id,
+        activityType: "workflow-updated",
+        description: `Workflow "${updatedWorkflow.name}" was updated`,
+        timestamp: new Date(),
+      });
+
+      return res.json(updatedWorkflow);
+    } catch (error) {
+      return handleZodError(error, res);
+    }
+  });
+
+  app.delete("/api/workflows/:id", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername("demo");
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+      const workflowId = parseInt(req.params.id);
+      const workflow = await storage.getWorkflow(workflowId);
+
+      if (!workflow || workflow.userId !== user.id) {
+        return res.status(404).json({ error: "Workflow not found" });
+      }
+
+      const deleted = await storage.deleteWorkflow(workflowId);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Workflow not found" });
+      }
+
+      // Create activity for workflow deletion
+      await storage.createActivity({
+        userId: user.id,
+        activityType: "workflow-deleted",
+        description: `Workflow "${workflow.name}" was deleted`,
+        timestamp: new Date(),
+      });
+
+      return res.json({ message: "Workflow deleted successfully" });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to delete workflow" });
+    }
+  });
+
   app.get("/api/workflows/:id/steps", async (req, res) => {
     try {
       const user = await storage.getUserByUsername("demo");
