@@ -594,7 +594,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAiAgent(id: number): Promise<boolean> {
     const result = await db.delete(aiAgents).where(eq(aiAgents.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Task operations
@@ -634,7 +634,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTask(id: number): Promise<boolean> {
     const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Activity operations
