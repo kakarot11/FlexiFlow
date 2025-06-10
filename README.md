@@ -2,7 +2,7 @@
 
 ## Overview
 
-FlexCRM is an AI-powered Customer Relationship Management (CRM) system designed to automate workflow tasks across different business domains, with a specific initial focus on the real estate sector. The application features contact management, workflow automation, AI agents, task tracking, and customizable templates for different business domains.
+FlexCRM is an AI-powered Customer Relationship Management (CRM) system designed to automate workflow tasks across different business domains. The application features contact management, workflow automation, AI agents, task tracking, and customizable templates for different business domains.
 
 ## User Preferences
 
